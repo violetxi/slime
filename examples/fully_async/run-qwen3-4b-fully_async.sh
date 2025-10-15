@@ -30,14 +30,14 @@ CKPT_ARGS=(
    --hf-checkpoint /root/Qwen3-4B
    #--hf-checkpoint /root/Qwen3-4B-FP8
    --ref-load /root/Qwen3-4B_torch_dist
-   --load /root/Qwen3-4B_slime/
-   --save /root/Qwen3-4B_slime/
+   --load Qwen3-4B_slime/
+   --save Qwen3-4B_slime/
    --save-interval 20
 )
 
 ROLLOUT_ARGS=(
    --rollout-function-path fully_async_rollout.generate_rollout_fully_async
-   --prompt-data /mnt/o1_alicloud/personal/zzl/rl_data/dapo-math-17k.jsonl
+   --prompt-data data/dapo-math-17k/dapo-math-17k.jsonl
    --input-key prompt
    --label-key label
    --apply-chat-template
@@ -46,11 +46,19 @@ ROLLOUT_ARGS=(
    --num-rollout 3000
    --rollout-batch-size 32
    --n-samples-per-prompt 8
-   --rollout-max-response-len 8192
-   --rollout-temperature 0.8
+   --rollout-max-response-len 16384
+   --rollout-temperature 0.7
 
-   --global-batch-size 256
+   --global-batch-size 128
    --balance-data
+)
+
+EVAL_ARGS=(
+   --eval-interval 20
+   --eval-prompt-data aime data/aime-2024/aime-2024.jsonl
+   --n-samples-per-eval-prompt 16
+   --eval-max-response-len 16384
+   --eval-top-p 0.7
 )
 
 PERF_ARGS=(
@@ -118,17 +126,19 @@ RUNTIME_ENV_JSON="{
   }
 }"
 
+# update-weights-interval is set to 1 by default in train_async.py
 ray job submit --address="http://127.0.0.1:8265" \
    --runtime-env-json="${RUNTIME_ENV_JSON}" \
    -- python3 train_async.py \
    --actor-num-nodes 1 \
-   --actor-num-gpus-per-node 4 \
-   --rollout-num-gpus 4 \
+   --actor-num-gpus-per-node 2 \
+   --rollout-num-gpus 6 \
    ${MODEL_ARGS[@]} \
    ${CKPT_ARGS[@]} \
    ${ROLLOUT_ARGS[@]} \
    ${OPTIMIZER_ARGS[@]} \
    ${GRPO_ARGS[@]} \
    ${PERF_ARGS[@]} \
+   ${EVAL_ARGS[@]} \
    ${SGLANG_ARGS[@]} \
    ${MISC_ARGS[@]}
